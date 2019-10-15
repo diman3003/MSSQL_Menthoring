@@ -5,7 +5,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER PROCEDURE [dbo].[GreatestOrders] @year int, @top int
+CREATE PROCEDURE [dbo].[GreatestOrders] @year int, @top int
 AS
 
 SET ROWCOUNT @top
