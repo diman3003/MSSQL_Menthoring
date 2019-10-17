@@ -1,24 +1,65 @@
 USE [Northwind]
 GO
-/****** Object:  StoredProcedure [dbo].[GreatestOrders]  Script Date: 15.10.2019 ******/
-SET ANSI_NULLS ON
+
+IF OBJECT_ID('[dbo].[GreatestOrders]', 'P') IS NOT NULL Drop Procedure [dbo].[GreatestOrders]
 GO
-SET QUOTED_IDENTIFIER ON
+
+IF OBJECT_ID('[dbo].[GreatestOrdersCur]', 'P') IS NOT NULL Drop Procedure [dbo].[GreatestOrdersCur]
 GO
+
+-------------------------------------------------
+--[dbo].[GreatestOrders]
+-------------------------------------------------
 CREATE PROCEDURE [dbo].[GreatestOrders] @year int, @top int
 AS
 
 SET ROWCOUNT @top
 
-SELECT Concat(e.LastName, ' ', e.Firstname) as Employee, ag.EmployeeID, ag.[Max Fright]
-FROM Employees e 
-INNER JOIN (SELECT o.EmployeeID, Max(Cast((o.Freight - (o.Freight * od.Discount)) AS decimal(10,2))) as [Max Fright]
-			FROM Orders o
-			INNER JOIN Employees e ON e.EmployeeID = o.EmployeeID
-			INNER JOIN [Order Details] od ON od.OrderId = o.OrderId
-			WHERE Year(o.OrderDate) = @year
-			GROUP BY o.EmployeeID
-			) ag ON e.EmployeeID = ag.EmployeeID
-ORDER BY [Max Fright] DESC
+SELECT Concat(e.LastName, ' ', e.Firstname) as Employee, ag2.OrderID, Cast(ag2.[Order Price] as decimal(10,2)) as [Order Price]
+FROM Employees e
+Inner Join (SELECT o.EmployeeID, ag.OrderID, ag.[Order Price], Row_Number() Over (Partition by o.EmployeeId ORDER BY [Order Price] DESC) as N
+			From  Orders o
+			Inner Join (SELECT [OrderID], Sum([Quantity] * ([UnitPrice] - [UnitPrice] * [Discount] )) as [Order Price]
+						FROM [Order Details]
+						GROUP BY OrderID) ag On ag.OrderID = o.OrderID
+			WHERE Year(o.OrderDate) = @year) ag2 On e.EmployeeID = ag2.EmployeeID
+WHERE ag2.N = 1
+ORDER BY [Order Price] DESC
 
 SET ROWCOUNT 0
+GO
+
+-------------------------------------------------
+--[dbo].[GreatestOrdersCur]
+-------------------------------------------------
+CREATE PROCEDURE [dbo].[GreatestOrdersCur] @year int, @top int
+AS
+
+Declare @employee nvarchar(50)
+Declare @id int
+Declare @mFright decimal(10,2)
+Declare cur CURSOR
+For
+
+SELECT Concat(e.LastName, ' ', e.Firstname) as Employee, ag2.OrderID, Cast(ag2.[Order Price] as decimal(10,2)) as [Order Price]
+FROM Employees e
+Inner Join (SELECT o.EmployeeID, ag.OrderID, ag.[Order Price], Row_Number() Over (Partition by o.EmployeeId ORDER BY [Order Price] DESC) as N
+			From  Orders o
+			Inner Join (SELECT [OrderID], Sum([Quantity] * ([UnitPrice] - [UnitPrice] * [Discount] )) as [Order Price]
+						FROM [Order Details]
+						GROUP BY OrderID) ag On ag.OrderID = o.OrderID
+			WHERE Year(o.OrderDate) = @year) ag2 On e.EmployeeID = ag2.EmployeeID
+WHERE ag2.N = 1
+ORDER BY [Order Price] DESC
+
+Open cur
+
+While @top > 0
+Begin
+	Fetch Next From cur Into @employee, @id, @mFright
+	Select @employee, @id, @mFright
+	Set @top = @top - 1
+End
+
+Close cur
+Deallocate cur
