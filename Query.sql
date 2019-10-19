@@ -18,4 +18,21 @@ WHERE @name = e.LastName + ' ' + e.Firstname and Year(o.OrderDate) = @y
 ORDER BY [Order Price] DESC
 GO
 
+--------------------
+--ShippedOrdersDiff
+--------------------
 EXEC dbo.ShippedOrdersDiff 35
+GO
+
+--------------------
+--IsBoss
+--------------------
+Select EmployeeID, LastName, FirstName, dbo.IsBoss(EmployeeID) as IsBoss
+From Employees
+GO
+
+--------------------
+--Real Prices View 
+--------------------
+Select * From dbo.RealPrices
+GO

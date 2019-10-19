@@ -76,3 +76,30 @@ Select  OrderID, OrderDate, ShippedDate, Datediff(Day, OrderDate, ShippedDate) a
 From Orders
 Where ShippedDate - OrderDate > @days Or ShippedDate is Null
 GO
+
+
+--------------------
+--IsBoss
+--------------------
+Create Function dbo.IsBoss(@id int)
+Returns Bit
+AS
+Begin
+	IF Exists(Select top 1 null From Employees Where ReportsTo = @id)
+	Begin
+		Return 1
+	End
+	Return 0
+End
+
+--------------------
+--Real Prices View 
+--------------------
+Create View RealPrices As
+Select o.OrderID, o.CustomerID, Concat(e.LastName, ' ', e.Firstname) as Employee, o.OrderDate, o.RequiredDate
+	 , p.ProductName, Cast(od.UnitPrice - od.UnitPrice * od.Discount as decimal(10,2)) as Price
+From Orders o
+Inner Join Employees e On e.EmployeeID = o.EmployeeID
+Inner Join [Order Details] od On o.OrderID = od.OrderID
+Inner Join Products p On p.ProductID = od.ProductID
+Order By Price OffSet 0 Rows
