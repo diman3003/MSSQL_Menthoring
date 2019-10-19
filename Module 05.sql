@@ -103,3 +103,46 @@ Inner Join Employees e On e.EmployeeID = o.EmployeeID
 Inner Join [Order Details] od On o.OrderID = od.OrderID
 Inner Join Products p On p.ProductID = od.ProductID
 Order By Price OffSet 0 Rows
+GO
+
+--------------------------
+--History table + trigger
+--------------------------
+Create Table dbo._OrdersHistory
+(
+	Id int Identity(1,1),
+	ActionType nvarchar(50) Not Null,
+	ActionDate DateTime Not Null,
+	[User] nvarchar(50) Not Null,
+	[RowId] nvarchar(50) NULL,
+)
+GO
+
+Create Trigger HisTrgr
+On [Northwind].[dbo].[Orders]
+After Insert, Update, Delete
+As
+Begin
+	declare @rowId nvarchar(50)
+	declare @aType char(6)
+
+	If exists (Select 1 From inserted) AND not exists (Select 1 From deleted)
+	Begin
+		Set @atype = 'Insert'
+		Set @rowid = (Select ins.OrderID From inserted ins)
+	End Else
+	Begin
+		if exists (Select 1 From deleted) and not exists (Select 1 From inserted)
+		Begin
+			Set @atype = 'Delete'
+			Set @rowid = (Select d.OrderID From deleted d)
+		End Else
+		Begin
+			Set @atype = 'Update'
+		    Set @rowid = (Select ins.OrderID From inserted ins)
+		End
+	End
+
+	Insert Into dbo._OrdersHistory(ActionType, ActionDate, [User], RowId)
+	Values(@aType, GETDATE(), CURRENT_USER, @rowId)
+End
