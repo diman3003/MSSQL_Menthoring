@@ -57,7 +57,7 @@ Open cur
 While @top > 0
 Begin
 	Fetch Next From cur Into @employee, @id, @mFright
-	Select @employee, @id, @mFright
+	Select @employee as Employee, @id as [Order], @mFright as [Order Price]
 	Set @top = @top - 1
 End
 
