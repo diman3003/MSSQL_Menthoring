@@ -63,3 +63,16 @@ End
 
 Close cur
 Deallocate cur
+GO
+
+
+-------------------------------------------------
+--[dbo].[ShippedOrdersDiff]
+-------------------------------------------------
+CREATE PROCEDURE [dbo].[ShippedOrdersDiff] @days int
+AS
+
+Select  OrderID, OrderDate, ShippedDate, Datediff(Day, OrderDate, ShippedDate) as ShippedDelay, @days as SpecifiedDelay 
+From Orders
+Where ShippedDate - OrderDate > @days Or ShippedDate is Null
+GO

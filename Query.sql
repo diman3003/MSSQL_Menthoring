@@ -3,8 +3,8 @@ USE [Northwind]
 declare @y int = 1998
 declare @c int = 5
 
-EXEC DBO.GreatestOrders @y, @c
-EXEC DBO.GreatestOrdersCur @y, @c
+EXEC dbo.GreatestOrders @y, @c
+EXEC dbo.GreatestOrdersCur @y, @c
 
 declare @name nvarchar(100) = 'Fuller Andrew'
 
@@ -16,3 +16,6 @@ INNER JOIN (SELECT [OrderID], Sum([Quantity] * ([UnitPrice] - [UnitPrice] * [Dis
 			GROUP BY OrderID) ag On ag.OrderID = o.OrderID
 WHERE @name = e.LastName + ' ' + e.Firstname and Year(o.OrderDate) = @y
 ORDER BY [Order Price] DESC
+GO
+
+EXEC dbo.ShippedOrdersDiff 35
