@@ -1,15 +1,11 @@
 USE [Northwind]
 GO
 
-IF OBJECT_ID('[dbo].[GreatestOrders]', 'P') IS NOT NULL Drop Procedure [dbo].[GreatestOrders]
-GO
-
-IF OBJECT_ID('[dbo].[GreatestOrdersCur]', 'P') IS NOT NULL Drop Procedure [dbo].[GreatestOrdersCur]
-GO
-
 -------------------------------------------------
 --[dbo].[GreatestOrders]
 -------------------------------------------------
+IF OBJECT_ID('[dbo].[GreatestOrders]', 'P') IS NOT NULL Drop Procedure [dbo].[GreatestOrders]
+GO
 CREATE PROCEDURE [dbo].[GreatestOrders] @year int, @top int
 AS
 
@@ -32,6 +28,8 @@ GO
 -------------------------------------------------
 --[dbo].[GreatestOrdersCur]
 -------------------------------------------------
+IF OBJECT_ID('[dbo].[GreatestOrdersCur]', 'P') IS NOT NULL Drop Procedure [dbo].[GreatestOrdersCur]
+GO
 CREATE PROCEDURE [dbo].[GreatestOrdersCur] @year int, @top int
 AS
 
@@ -69,6 +67,8 @@ GO
 -------------------------------------------------
 --[dbo].[ShippedOrdersDiff]
 -------------------------------------------------
+IF OBJECT_ID('[dbo].[ShippedOrdersDiff]', 'P') IS NOT NULL Drop Procedure [dbo].[ShippedOrdersDiff]
+GO
 CREATE PROCEDURE [dbo].[ShippedOrdersDiff] @days int
 AS
 
@@ -81,6 +81,8 @@ GO
 --------------------
 --IsBoss
 --------------------
+IF OBJECT_ID('[dbo].[IsBoss]', 'FN') IS NOT NULL Drop Function [dbo].[IsBoss]
+GO
 Create Function dbo.IsBoss(@id int)
 Returns Bit
 AS
@@ -91,10 +93,14 @@ Begin
 	End
 	Return 0
 End
+GO
+
 
 --------------------
 --Real Prices View 
 --------------------
+IF OBJECT_ID('[dbo].[RealPrices]', 'V') IS NOT NULL Drop View [dbo].[RealPrices]
+GO
 Create View RealPrices As
 Select o.OrderID, o.CustomerID, Concat(e.LastName, ' ', e.Firstname) as Employee, o.OrderDate, o.RequiredDate
 	 , p.ProductName, Cast(od.UnitPrice - od.UnitPrice * od.Discount as decimal(10,2)) as Price
@@ -108,6 +114,8 @@ GO
 --------------------------
 --History table + trigger
 --------------------------
+IF OBJECT_ID('[dbo].[_OrdersHistory]', 'U') IS NOT NULL Drop Table [dbo].[_OrdersHistory]
+GO
 Create Table dbo._OrdersHistory
 (
 	Id int Identity(1,1),
@@ -118,8 +126,10 @@ Create Table dbo._OrdersHistory
 )
 GO
 
+IF OBJECT_ID('[dbo].[HisTrgr]', 'TR') IS NOT NULL Drop Trigger [dbo].[HisTrgr]
+GO
 Create Trigger HisTrgr
-On [Northwind].[dbo].[Orders]
+On [dbo].[Orders]
 After Insert, Update, Delete
 As
 Begin
@@ -144,5 +154,5 @@ Begin
 	End
 
 	Insert Into dbo._OrdersHistory(ActionType, ActionDate, [User], RowId)
-	Values(@aType, GETDATE(), CURRENT_USER, @rowId)
+	Values(@aType, GETDATE(), SYSTEM_USER, @rowId)
 End

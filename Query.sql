@@ -36,3 +36,20 @@ GO
 --------------------
 Select * From dbo.RealPrices
 GO
+
+--------------------------
+--History table + trigger
+--------------------------
+Insert Into Orders(CustomerID, EmployeeID)
+Values('ANTON', 5)
+
+Update Orders
+Set EmployeeID = 6
+Where OrderID = (Select top 1 OrderID FROM [Northwind].[dbo].[Orders]
+where CustomerID = 'ANTON' and OrderDate is Null)
+
+Delete From Orders
+where OrderID = (Select top 1 OrderID FROM [Northwind].[dbo].[Orders]
+where CustomerID = 'ANTON' and OrderDate is Null)
+
+Select * from _OrdersHistory
