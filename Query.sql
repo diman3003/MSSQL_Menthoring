@@ -21,7 +21,10 @@ GO
 --------------------
 --ShippedOrdersDiff
 --------------------
-EXEC dbo.ShippedOrdersDiff 35
+EXEC dbo.ShippedOrdersDiff 30
+GO
+
+EXEC dbo.ShippedOrdersDiff ''
 GO
 
 --------------------
