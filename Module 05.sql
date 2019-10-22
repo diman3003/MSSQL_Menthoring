@@ -4,25 +4,22 @@ GO
 -------------------------------------------------
 --[dbo].[GreatestOrders]
 -------------------------------------------------
-IF OBJECT_ID('[dbo].[GreatestOrders]', 'P') IS NOT NULL Drop Procedure [dbo].[GreatestOrders]
+IF OBJECT_ID('[dbo].[GreatestOrders]', 'P') IS NOT NULL DROP PROCEDURE [dbo].[GreatestOrders]
 GO
-CREATE PROCEDURE [dbo].[GreatestOrders] @year int, @top int
+CREATE PROCEDURE [dbo].[GreatestOrders] @year INT, @top INT
 AS
 
-SET ROWCOUNT @top
-
-SELECT Concat(e.LastName, ' ', e.Firstname) as Employee, ag2.OrderID, Cast(ag2.[Order Price] as decimal(10,2)) as [Order Price]
+SELECT TOP (@top) CONCAT(e.LastName, ' ', e.Firstname) as Employee, ag.OrderID, CAST(ag.[Order Price] AS DECIMAL(10,2)) AS [Order Price]
 FROM Employees e
-Inner Join (SELECT o.EmployeeID, ag.OrderID, ag.[Order Price], Row_Number() Over (Partition by o.EmployeeId ORDER BY [Order Price] DESC) as N
-			From  Orders o
-			Inner Join (SELECT [OrderID], Sum([Quantity] * ([UnitPrice] - [UnitPrice] * [Discount] )) as [Order Price]
-						FROM [Order Details]
-						GROUP BY OrderID) ag On ag.OrderID = o.OrderID
-			WHERE Year(o.OrderDate) = @year) ag2 On e.EmployeeID = ag2.EmployeeID
-WHERE ag2.N = 1
+Inner Join Orders o ON e.EmployeeID = o.EmployeeID
+Inner Join (SELECT o.OrderID, o.EmployeeID, SUM(od.[Quantity] * (od.[UnitPrice] - od.[UnitPrice] * od.[Discount] )) AS [Order Price]
+			, ROW_NUMBER() OVER (PARTITION BY o.EmployeeId ORDER BY SUM(od.[Quantity] * (od.[UnitPrice] - od.[UnitPrice] * od.[Discount] )) DESC) AS N
+			FROM Orders o
+			inner Join [Order Details] od ON o.OrderID = od.OrderID
+			WHERE  YEAR(o.OrderDate) = @year
+			GROUP BY o.OrderID, o.EmployeeID) ag ON o.OrderID = ag.OrderID
+WHERE ag.N = 1
 ORDER BY [Order Price] DESC
-
-SET ROWCOUNT 0
 GO
 
 -------------------------------------------------
@@ -39,15 +36,16 @@ Declare @mFright decimal(10,2)
 Declare cur CURSOR
 For
 
-SELECT Concat(e.LastName, ' ', e.Firstname) as Employee, ag2.OrderID, Cast(ag2.[Order Price] as decimal(10,2)) as [Order Price]
+SELECT CONCAT(e.LastName, ' ', e.Firstname) as Employee, ag.OrderID, CAST(ag.[Order Price] AS DECIMAL(10,2)) AS [Order Price]
 FROM Employees e
-Inner Join (SELECT o.EmployeeID, ag.OrderID, ag.[Order Price], Row_Number() Over (Partition by o.EmployeeId ORDER BY [Order Price] DESC) as N
-			From  Orders o
-			Inner Join (SELECT [OrderID], Sum([Quantity] * ([UnitPrice] - [UnitPrice] * [Discount] )) as [Order Price]
-						FROM [Order Details]
-						GROUP BY OrderID) ag On ag.OrderID = o.OrderID
-			WHERE Year(o.OrderDate) = @year) ag2 On e.EmployeeID = ag2.EmployeeID
-WHERE ag2.N = 1
+Inner Join Orders o ON e.EmployeeID = o.EmployeeID
+Inner Join (SELECT o.OrderID, o.EmployeeID, SUM(od.[Quantity] * (od.[UnitPrice] - od.[UnitPrice] * od.[Discount] )) AS [Order Price]
+			, ROW_NUMBER() OVER (PARTITION BY o.EmployeeId ORDER BY SUM(od.[Quantity] * (od.[UnitPrice] - od.[UnitPrice] * od.[Discount] )) DESC) AS N
+			FROM Orders o
+			inner Join [Order Details] od ON o.OrderID = od.OrderID
+			WHERE  YEAR(o.OrderDate) = @year
+			GROUP BY o.OrderID, o.EmployeeID) ag ON o.OrderID = ag.OrderID
+WHERE ag.N = 1
 ORDER BY [Order Price] DESC
 
 Open cur
@@ -71,6 +69,9 @@ IF OBJECT_ID('[dbo].[ShippedOrdersDiff]', 'P') IS NOT NULL Drop Procedure [dbo].
 GO
 CREATE PROCEDURE [dbo].[ShippedOrdersDiff] @days int
 AS
+
+If (IsNull(@days, '') = '')
+	Set @days = 35
 
 Select  OrderID, OrderDate, ShippedDate, Datediff(Day, OrderDate, ShippedDate) as ShippedDelay, @days as SpecifiedDelay 
 From Orders
@@ -111,9 +112,12 @@ Inner Join Products p On p.ProductID = od.ProductID
 Order By Price OffSet 0 Rows
 GO
 
---------------------------
---History table + trigger
---------------------------
+----------------------------------------------------------------------------------------------------------------
+-- History table + trigger
+--
+-- Данные поля выбраны для того чтобы можно было однозначно идентифицировать объект и субъект манипуляции данными,
+-- а так же для опеределения даты и времени на которую нужно выполнить откат измененных данных.
+----------------------------------------------------------------------------------------------------------------
 IF OBJECT_ID('[dbo].[_OrdersHistory]', 'U') IS NOT NULL Drop Table [dbo].[_OrdersHistory]
 GO
 Create Table dbo._OrdersHistory
@@ -122,7 +126,7 @@ Create Table dbo._OrdersHistory
 	ActionType nvarchar(50) Not Null,
 	ActionDate DateTime Not Null,
 	[User] nvarchar(50) Not Null,
-	[RowId] nvarchar(50) NULL,
+	[RowId] nvarchar(50) Not Null,
 )
 GO
 
