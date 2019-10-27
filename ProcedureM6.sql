@@ -1,9 +1,8 @@
 USE Northwind
 
--------------------------------------------
+------
 --6.1
---
---------------------------------------------
+------
 IF OBJECT_ID('[dbo].[Accounts]', 'U') IS NOT NULL DROP TABLE [dbo].[Accounts]
 GO
 CREATE TABLE dbo.Accounts(
@@ -52,23 +51,102 @@ GO
 	ON CounterpartyId = RcvID
 )
 
-SELECT CounterpartyId, Name, COUNT(CounterpartyId) as Cnt
+SELECT CounterpartyId, Name, COUNT(CounterpartyId) AS Cnt
 FROM ActveTransactions
 WHERE IsActive = 1
 GROUP BY CounterpartyId, Name
 HAVING COUNT(CounterpartyId) > 1
-
+GO
 -------------------------------------------------------------------------------------------------------------------
 -- 6.1.2 Посчитать суммарное число актива, образовавшееся на активных счетах, в результате проведенных проводок.
 -- Выводимые поля: CounterpartyID, Name, AssetID, Quantity 
 -------------------------------------------------------------------------------------------------------------------
+;WITH AllTransactions AS(
+SELECT a.CounterpartyId, a.Name, t.AssetID, CAST(SUM(t.Quantity) AS DECIMAL(10,2)) AS Quantity
+FROM dbo.Accounts a 
+INNER JOIN dbo.Transactions t ON a.CounterpartyId = t.RcvID
+WHERE a.IsActive = 1
+GROUP BY a.CounterpartyId, a.Name, t.AssetID
+UNION ALL
+SELECT a.CounterpartyId, a.Name, t.AssetID, CAST(SUM(-t.Quantity) AS DECIMAL(10,2)) AS Quantity
+FROM dbo.Accounts a 
+INNER JOIN dbo.Transactions t ON a.CounterpartyId = t.SndID
+WHERE a.IsActive = 1
+GROUP BY a.CounterpartyId, a.Name, t.AssetID)
 
-;WITH ActveTransactions AS(
-	SELECT a.CounterpartyId, t.AssetID, t.Quantity 
-	FROM Accounts a 
-	INNER JOIN Transactions t ON a.CounterpartyId = t.RcvID
-	WHERE a.IsActive = 1)
+SELECT distinct CounterpartyId, Name, AssetID, SUM(Quantity) OVER (PARTITION BY CounterpartyId, AssetID) AS Quantity
+FROM  AllTransactions
+GO
+---------------------------------------------------------------------------------------------------------------------
+-- 6.1.3
+-- Посчитать средний дневной оборот по всем счетам по всем проводкам считая что AssetID во всех проводках одинаковый.
+-- Выводимые поля: CounterpartyID, Name, Oborot
+---------------------------------------------------------------------------------------------------------------------
+;WITH AllTransactions AS(
+	SELECT YEAR(t.TransDate) AS Y, MONTH(t.TransDate) AS M, DAY(t.TransDate) AS D, a.CounterpartyId, a.Name, t.Quantity
+	FROM dbo.Accounts a 
+	INNER JOIN dbo.Transactions t ON a.CounterpartyId = t.RcvID
+	UNION ALL
+	SELECT YEAR(t.TransDate) AS Y, MONTH(t.TransDate) AS M, DAY(t.TransDate) AS D, a.CounterpartyId, a.Name, -t.Quantity
+	FROM dbo.Accounts a 
+	INNER JOIN dbo.Transactions t ON a.CounterpartyId = t.SndID
+)
 
-SELECT CounterpartyId, AssetID, SUM(Quantity) as Quantity
-FROM ActveTransactions
-GROUP BY AssetID, CounterpartyId
+SELECT CounterpartyID, Name, CAST(AVG(Quantity) AS DECIMAL(10,2)) AS Oborot
+FROM  AllTransactions
+GROUP BY Y, M, D, CounterpartyID, Name
+GO
+-------------------------
+-- 6.2.4
+-- Посчитать средний месячный оборот по всем счетам по всем проводкам считая что AssetID во всех проводках одинаковый.
+-- Выводимые поля: CounterpartyID, Name, Oborot
+----------------------------------------------------------------------------------------------------------------------
+;WITH AllTransactions AS(
+	SELECT YEAR(t.TransDate) AS Y, MONTH(t.TransDate) AS M, a.CounterpartyId, a.Name, t.Quantity
+	FROM dbo.Accounts a 
+	INNER JOIN dbo.Transactions t ON a.CounterpartyId = t.RcvID
+	UNION ALL
+	SELECT YEAR(t.TransDate) AS Y, MONTH(t.TransDate) AS M, a.CounterpartyId, a.Name, -t.Quantity
+	FROM dbo.Accounts a 
+	INNER JOIN dbo.Transactions t ON a.CounterpartyId = t.SndID
+)
+
+SELECT CounterpartyID, Name, CAST(AVG(Quantity) AS DECIMAL(10,2)) AS Oborot
+FROM  AllTransactions
+GROUP BY Y, M, CounterpartyID, Name
+GO
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+-- 6.2
+-- 6.2.	По таблице dbo.Employees для каждого руководителя найти подчиненных на всех уровнях иерархии подчинения (напряму и через других подчиненных).
+-- Вывести руководителя, подчиненного, непосредственного руководителя и уровень подчинения. 
+-- Для построения иерархии в таблице используются поля EmploeeID и ReportsTo. Необходимо использовать рекурсивыный CTE.
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+IF OBJECT_ID('[dbo].[GetNameById]', 'FN') IS NOT NULL DROP FUNCTION [dbo].[GetNameById]
+GO
+CREATE FUNCTION GetNameById (@id AS int)
+RETURNS nvarchar(50)
+AS
+BEGIN
+	RETURN (SELECT CONCAT(FirstName, N' ', LastName) as FIO 
+			FROM dbo.Employees
+			WHERE EmployeeID = @id)
+END
+GO
+
+;WITH Reports
+AS
+(
+	SELECT EmployeeID, ReportsTo, ReportsTo AS r1, 1 AS Level
+	FROM dbo.Employees e
+	UNION ALL
+	SELECT r.EmployeeID, e.ReportsTo, r.ReportsTo, r.Level+1 as Level
+	FROM Reports r INNER JOIN Employees e ON e.EmployeeID = r.ReportsTo
+)
+
+SELECT dbo.GetnameById(ReportsTo) AS 'Руководитель', dbo.GetnameById(EmployeeId) AS 'Подчиненный', Level AS 'Уровень', dbo.GetnameById(r1) AS 'Непосредственный руководитель'
+FROM Reports
+WHERE ReportsTo IS NOT NULL AND r1 IS NOT NULL
+
+
+
+
