@@ -117,37 +117,39 @@ FROM  AllTransactions
 GROUP BY Y, M, CounterpartyID, Name;
 GO
 
---------------------------------------------------------------------------------------------------------------------------------------------------------
--- 6.2.	По таблице dbo.Employees для каждого руководителя найти подчиненных на всех уровнях иерархии подчинения (напряму и через других подчиненных).
--- Вывести руководителя, подчиненного, непосредственного руководителя и уровень подчинения. 
--- Для построения иерархии в таблице используются поля EmploeeID и ReportsTo. Необходимо использовать рекурсивыный CTE.
---------------------------------------------------------------------------------------------------------------------------------------------------------
+------
+--6.2
+------
 IF OBJECT_ID(N'[dbo].[GetNameById]', N'FN') IS NOT NULL DROP FUNCTION [dbo].[GetNameById];
 GO
 CREATE FUNCTION GetNameById (@id AS int)
 RETURNS nvarchar(50)
 AS
 BEGIN
-	RETURN (SELECT CONCAT(FirstName, N' ', LastName) as FIO 
+	RETURN (SELECT CONCAT(FirstName, N' ', LastName) AS FIO 
 			FROM dbo.Employees
 			WHERE EmployeeID = @id)
 END
 GO
 
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+-- 6.2.1 По таблице dbo.Employees для каждого руководителя найти подчиненных на всех уровнях иерархии подчинения (напряму и через других подчиненных).
+-- Вывести руководителя, подчиненного, непосредственного руководителя и уровень подчинения. 
+-- Для построения иерархии в таблице используются поля EmploeeID и ReportsTo. Необходимо использовать рекурсивыный CTE.
+--------------------------------------------------------------------------------------------------------------------------------------------------------
 ;WITH Reports
 AS
 (
 	SELECT EmployeeID, ReportsTo, ReportsTo AS r1, 1 AS Level
 	FROM dbo.Employees e
 	UNION ALL
-	SELECT r.EmployeeID, e.ReportsTo, r.ReportsTo, r.Level+1 as Level
+	SELECT r.EmployeeID, e.ReportsTo, r.ReportsTo, r.Level+1 AS Level
 	FROM Reports r INNER JOIN Employees e ON e.EmployeeID = r.ReportsTo
 )
 
-SELECT dbo.GetnameById(ReportsTo) AS N'Руководитель', dbo.GetnameById(EmployeeId) AS N'Подчиненный', Level AS N'Уровень', dbo.GetnameById(r1) AS N'Непосредственный руководитель'
+SELECT dbo.GetnameById(ReportsTo) AS N'Руководитель'
+		,dbo.GetnameById(EmployeeId) AS N'Подчиненный'
+		,Level AS N'Уровень'
+		,dbo.GetnameById(r1) AS N'Непосредственный руководитель'
 FROM Reports
-WHERE ReportsTo IS NOT NULL and r1 IS NOT NULL
-
-
-
-
+WHERE ReportsTo IS NOT NULL AND r1 IS NOT NULL;
