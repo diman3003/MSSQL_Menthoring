@@ -19,20 +19,21 @@ SELECT CategoryName as Category, [AK], [BC], [CA], [Co. Cork]
 FROM CTE
 PIVOT(AVG(P) FOR R IN ([AK], [BC], [CA], [Co. Cork])) as PT;
 GO
-
+exec sp_help #Periods
 -----------------------------------------------------------------------------
 -- 7.2.	—оздать временную таблицу #Periods с двум€ пол€ми: PeriodID, Value. 
 -----------------------------------------------------------------------------
 IF OBJECT_ID('[dbo].[#Periods]', 'U') IS NOT NULL DROP TABLE [dbo].[#Periods];
 GO
 
-CREATE TABLE #Periods
+CREATE TABLE dbo.#Periods
 (
 	[Period] int
 	,[Value] int
 );
 GO
 
+DELETE FROM #Periods
 INSERT INTO #Periods([Period], [Value]) VALUES(1,10);
 INSERT INTO #Periods([Period], [Value]) VALUES(3,10);
 INSERT INTO #Periods([Period], [Value]) VALUES(5,20);
@@ -60,3 +61,15 @@ GO
 -- 7.2.2. “ребуетс€ удалить из таблицы периоды в которых значение Value равно значению Value в предыдущем периоде.
 -- ¬ыводимые пол€: PeriodID, Value. ¬ примере выше должны быть удалены значени€ 3, 6, 10.
 -------------------------------------------------------------------------------------------------------------------
+;WITH CTE
+AS
+(
+	SELECT [Period], [Value], SUM(Value) OVER(ORDER BY [Period] ROWS BETWEEN  1 PRECEDING AND CURRENT ROW) AS V
+	FROM #Periods
+)
+DELETE
+FROM CTE
+WHERE [Value] = V/2;
+GO
+
+SELECT * FROM #Periods
