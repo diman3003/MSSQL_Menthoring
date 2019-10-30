@@ -73,3 +73,29 @@ WHERE [Value] = V/2;
 GO
 
 SELECT * FROM #Periods
+
+-------------------------------------------------------------------------------------------------
+-- 7.3.1 ѕронумеруйте заказы из таблицы Orders в пор€дке уменьшени€ времени затрат на доставку.
+-------------------------------------------------------------------------------------------------
+
+SELECT OrderID, OrderDate, ShippedDate, DATEDIFF(day, OrderDate, ShippedDate) as Delta
+		,ROW_NUMBER() OVER(ORDER BY DATEDIFF(day, OrderDate, ShippedDate) DESC) as N
+FROM dbo.Orders
+WHERE ShippedDate IS NOT NULL
+
+-------------------------------------------------------------------------------------------------------
+-- 7.3.2 ¬ыберите те категории продуктов, у которых количество поставщиков из одной страны больше трех.
+-------------------------------------------------------------------------------------------------------
+;With CTE
+AS
+(
+	SELECT s.SupplierID, ProductID, s.Country, c.CategoryID, c.CategoryName
+			, ROW_NUMBER() OVER(Partition BY c.CategoryID, Country ORDER BY c.CategoryID, Country ) as N
+	FROM dbo.Suppliers s
+	INNER JOIN dbo.Products p ON p.SupplierID = s.SupplierID
+	INNER JOIN dbo.Categories c ON c.CategoryID = p.CategoryID
+)
+
+SELECT CategoryName
+from CTE
+WHERE N = 4 
