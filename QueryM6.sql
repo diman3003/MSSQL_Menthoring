@@ -29,10 +29,11 @@ CREATE TABLE dbo.Transactions(
 	);
 GO
 
-INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('01.01.2012', 1, 2, 1, 100);
-INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('02.01.2012', 1, 3, 2, 150);
-INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('01.01.2012', 3, 1, 1, 300);
-INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('01.01.2012', 2, 1, 3, 50);
+INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('20120101', 1, 2, 1, 100);
+INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('20120102', 1, 3, 2, 150);
+INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('20120103', 3, 1, 1, 300);
+INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('20120104', 2, 1, 3, 50);
+INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('20130104', 2, 1, 3, 1150);
 GO
 
 ------------------------------------------------------------------------------------------------------
@@ -51,10 +52,10 @@ GO
 	ON CounterpartyId = RcvID
 )
 
-SELECT CounterpartyId, Name, COUNT(CounterpartyId) AS Cnt
+SELECT CounterpartyId, [Name], COUNT(CounterpartyId) AS Cnt
 FROM ActveTransactions
 WHERE IsActive = 1
-GROUP BY CounterpartyId, Name
+GROUP BY CounterpartyId, [Name]
 HAVING COUNT(CounterpartyId) > 1;
 GO
 -------------------------------------------------------------------------------------------------------------------
@@ -75,8 +76,9 @@ GO
 	GROUP BY a.CounterpartyId, a.Name, t.AssetID
 )
 
-SELECT DISTINCT CounterpartyId, Name, AssetID, SUM(Quantity) OVER (PARTITION BY CounterpartyId, AssetID) AS Quantity
-FROM  AllTransactions;
+SELECT CounterpartyId, [Name], AssetID, SUM(Quantity) AS Quantity
+FROM  AllTransactions
+GROUP BY CounterpartyId, [Name], AssetID;
 GO
 ---------------------------------------------------------------------------------------------------------------------
 -- 6.1.3
@@ -84,23 +86,23 @@ GO
 -- Выводимые поля: CounterpartyID, Name, Oborot
 ---------------------------------------------------------------------------------------------------------------------
 ;WITH AllTransactions AS(
-	SELECT YEAR(t.TransDate) AS Y, MONTH(t.TransDate) AS M, DAY(t.TransDate) AS D, a.CounterpartyId, a.Name, t.Quantity
+	SELECT a.CounterpartyId, a.Name, t.Quantity
 	FROM dbo.Accounts a 
 	INNER JOIN dbo.Transactions t ON a.CounterpartyId = t.RcvID
 	UNION ALL
-	SELECT YEAR(t.TransDate) AS Y, MONTH(t.TransDate) AS M, DAY(t.TransDate) AS D, a.CounterpartyId, a.Name, -t.Quantity
+	SELECT a.CounterpartyId, a.Name, -t.Quantity
 	FROM dbo.Accounts a 
 	INNER JOIN dbo.Transactions t ON a.CounterpartyId = t.SndID
 )
 
-SELECT CounterpartyID, Name, CAST(AVG(Quantity) AS DECIMAL(10,2)) AS Oborot
+SELECT CounterpartyID, [Name], CAST(AVG(Quantity) AS DECIMAL(10,2)) AS Oborot
 FROM  AllTransactions
-GROUP BY Y, M, D, CounterpartyID, Name;
+GROUP BY CounterpartyID, [Name];
 GO
 -------------------------
 -- 6.2.4
 -- Посчитать средний месячный оборот по всем счетам по всем проводкам считая что AssetID во всех проводках одинаковый.
--- Выводимые поля: CounterpartyID, Name, Oborot
+-- Выводимые поля: CounterpartyID, Name, Oborot Data Source=EPRUIZHW0083;Initial Catalog=UBP_B1;User ID=diman;Password=Dim@n3003
 ----------------------------------------------------------------------------------------------------------------------
 ;WITH AllTransactions AS(
 	SELECT YEAR(t.TransDate) AS Y, MONTH(t.TransDate) AS M, a.CounterpartyId, a.Name, t.Quantity
@@ -112,9 +114,9 @@ GO
 	INNER JOIN dbo.Transactions t ON a.CounterpartyId = t.SndID
 )
 
-SELECT CounterpartyID, Name, CAST(AVG(Quantity) AS DECIMAL(10,2)) AS Oborot
+SELECT CounterpartyID, [Name], CAST(AVG(Quantity) AS DECIMAL(10,2)) AS Oborot
 FROM  AllTransactions
-GROUP BY Y, M, CounterpartyID, Name;
+GROUP BY Y, M, CounterpartyID, [Name];
 GO
 
 ------
@@ -140,16 +142,16 @@ GO
 ;WITH Reports
 AS
 (
-	SELECT EmployeeID, ReportsTo, ReportsTo AS r1, 1 AS Level
+	SELECT EmployeeID, ReportsTo, ReportsTo AS r1, 1 AS [Level]
 	FROM dbo.Employees e
 	UNION ALL
-	SELECT r.EmployeeID, e.ReportsTo, r.ReportsTo, r.Level+1 AS Level
+	SELECT r.EmployeeID, e.ReportsTo, r.ReportsTo, r.[Level]+1 AS [Level]
 	FROM Reports r INNER JOIN Employees e ON e.EmployeeID = r.ReportsTo
 )
 
 SELECT dbo.GetnameById(ReportsTo) AS N'Руководитель'
 		,dbo.GetnameById(EmployeeId) AS N'Подчиненный'
-		,Level AS N'Уровень'
+		,[Level] AS N'Уровень'
 		,dbo.GetnameById(r1) AS N'Непосредственный руководитель'
 FROM Reports
 WHERE ReportsTo IS NOT NULL AND r1 IS NOT NULL;

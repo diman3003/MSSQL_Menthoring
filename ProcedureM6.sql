@@ -29,10 +29,10 @@ CREATE TABLE dbo.Transactions(
 	);
 GO
 
-INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('01.01.2012', 1, 2, 1, 100);
-INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('02.01.2012', 1, 3, 2, 150);
-INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('01.01.2012', 3, 1, 1, 300);
-INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('01.01.2012', 2, 1, 3, 50);
+INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('2012.01.01', 1, 2, 1, 100);
+INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('2012.01.02', 1, 3, 2, 150);
+INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('2012.01.03', 3, 1, 1, 300);
+INSERT INTO dbo.Transactions ([TransDate], [RcvID], [SndID], [AssetID], [Quantity]) VALUES ('2012.01.04', 2, 1, 3, 50);
 GO
 
 ------------------------------------------------------------------------------------------------------
