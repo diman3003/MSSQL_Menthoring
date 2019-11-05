@@ -108,28 +108,46 @@ GO
 -- 7.3.3.	—оздайте функцию GetNums(@low bigint, @high bigint), котора€ возвращает таблицу с колонкой n bigint.
 -- ¬ этой таблице должны быть упор€доченные по возрастанию значени€ от @low до @high (количеством записей @high - @low + 1).
 -----------------------------------------------------------------------------------------------------------------------------
-IF OBJECT_ID(N'[dbo].[GetNums]', N'FN') IS NOT NULL DROP FUNCTION [dbo].[GetNums]
+IF OBJECT_ID(N'dbo.GetNums', N'TF') IS NOT NULL DROP FUNCTION [dbo].[GetNums]
 GO
 
 CREATE FUNCTION dbo.GetNums(@low bigint, @high bigint)
-RETURNS @t TABLE   
-(  
-    n bigint  
-)  
+RETURNS TABLE   
 AS  
-BEGIN  
-WITH Cte(n)
-    AS (  
-			SELECT @low [n]
-			UNION ALL
-			SELECT [n]+1 FROM Cte WHERE [n] < @high
-        )  
+RETURN
+with
+	b0 as (select n from (values (0),(0x00000001),(0x00000002),(0x00000003),(0x00000004),(0x00000005),(0x00000006),(0x00000007),(0x00000008),(0x00000009),(0x0000000A),(0x0000000B),(0x0000000C),(0x0000000D),(0x0000000E),(0x0000000F)) as b0(n)),
+	b1 as (select n from (values (0),(0x00000010),(0x00000020),(0x00000030),(0x00000040),(0x00000050),(0x00000060),(0x00000070),(0x00000080),(0x00000090),(0x000000A0),(0x000000B0),(0x000000C0),(0x000000D0),(0x000000E0),(0x000000F0)) as b1(n)),
+	b2 as (select n from (values (0),(0x00000100),(0x00000200),(0x00000300),(0x00000400),(0x00000500),(0x00000600),(0x00000700),(0x00000800),(0x00000900),(0x00000A00),(0x00000B00),(0x00000C00),(0x00000D00),(0x00000E00),(0x00000F00)) as b2(n)),
+	b3 as (select n from (values (0),(0x00001000),(0x00002000),(0x00003000),(0x00004000),(0x00005000),(0x00006000),(0x00007000),(0x00008000),(0x00009000),(0x0000A000),(0x0000B000),(0x0000C000),(0x0000D000),(0x0000E000),(0x0000F000)) as b3(n)),
+	b4 as (select n from (values (0),(0x00010000),(0x00020000),(0x00030000),(0x00040000),(0x00050000),(0x00060000),(0x00070000),(0x00080000),(0x00090000),(0x000A0000),(0x000B0000),(0x000C0000),(0x000D0000),(0x000E0000),(0x000F0000)) as b4(n)),
+	b5 as (select n from (values (0),(0x00100000),(0x00200000),(0x00300000),(0x00400000),(0x00500000),(0x00600000),(0x00700000),(0x00800000),(0x00900000),(0x00A00000),(0x00B00000),(0x00C00000),(0x00D00000),(0x00E00000),(0x00F00000)) as b5(n)),
+	b6 as (select n from (values (0),(0x01000000),(0x02000000),(0x03000000),(0x04000000),(0x05000000),(0x06000000),(0x07000000),(0x08000000),(0x09000000),(0x0A000000),(0x0B000000),(0x0C000000),(0x0D000000),(0x0E000000),(0x0F000000)) as b6(n)),
+	b7 as (select n from (values (0),(0x10000000),(0x20000000),(0x30000000),(0x40000000),(0x50000000),(0x60000000),(0x70000000)) as b7(n))
 
-   INSERT @t
-   SELECT n
-   FROM Cte  
-   RETURN  
-END;  
+	select s.n
+	from (
+		select
+			  b7.n
+			| b6.n
+			| b5.n
+			| b4.n
+			| b3.n
+			| b2.n
+			| b1.n
+			| b0.n
+			+ @low
+			 n
+		from b0
+		join b1 on b0.n <= @high-@low and b1.n <= @high-@low
+		join b2 on b2.n <= @high-@low
+		join b3 on b3.n <= @high-@low
+		join b4 on b4.n <= @high-@low
+		join b5 on b5.n <= @high-@low
+		join b6 on b6.n <= @high-@low
+		join b7 on b7.n <= @high-@low
+	) s
+	where @high >= s.n
 GO 
 
-SELECT * FROM dbo.GetNums(1,5)
+SELECT * FROM dbo.GetNums(100, 250)
