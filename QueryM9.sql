@@ -62,18 +62,17 @@ set statistics time on
 
 DECLARE @OrderDate DATETIME = N'1996-01-01 00:00:00'
 
-SELECT  ordr.OrderID as OrderId,
-        empl.FirstName as FName,
-		empl.LastName as LName,
-        ordr.CustomerID as CustomerId,
-	    cust.CompanyName as CompanyName,
-        ordr.ShippedDate as ShippedDate,
-        prod.ProductName as ProductName
+SELECT  ordr.OrderID AS OrderId,
+        CONCAT(empl.FirstName, ' ', empl.LastName) AS EmployeeName,
+        ordr.CustomerID AS CustomerId,
+	    cust.CompanyName AS CompanyName,
+        ordr.ShippedDate AS ShippedDate,
+        prod.ProductName AS ProductName
 FROM    dbo.Orders ordr
-INNER loop JOIN dbo.[Order Details] ord ON ord.OrderID = ordr.OrderID
-INNER loop JOIN dbo.Products prod ON ord.ProductID = prod.ProductID
-INNER loop JOIN dbo.Customers cust ON ordr.CustomerID = cust.CustomerID
-INNER loop JOIN dbo.Employees empl ON ordr.EmployeeID = empl.EmployeeID
+INNER LOOP JOIN dbo.[Order Details] ord ON ord.OrderID = ordr.OrderID
+INNER LOOP JOIN dbo.Products prod ON ord.ProductID = prod.ProductID
+INNER LOOP JOIN dbo.Customers cust ON ordr.CustomerID = cust.CustomerID
+INNER LOOP JOIN dbo.Employees empl ON ordr.EmployeeID = empl.EmployeeID
 WHERE ordr.OrderDate >= @OrderDate
 
 set statistics time on 
