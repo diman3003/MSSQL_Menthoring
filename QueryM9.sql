@@ -14,7 +14,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------------
 -- 9.2.	Написать скрипт, который обновит в поле PostalCode таблицы dbo.Employees все не числовые символы на любые числовые.
 -----------------------------------------------------------------------------------------------------------------------------
-IF EXISTS (SELECT top 1 NULL FROM sys.objects WHERE type = 'FN' AND name = 'SetDigits')
+IF EXISTS (SELECT top 1 NULL FROM sys.objects WHERE [type] = 'FN' AND [name] = 'SetDigits')
 BEGIN
 	DROP FUNCTION dbo.SetDigits
 END
@@ -51,7 +51,7 @@ WHERE   LEFT(PostalCode, 2) = '98';
 -- Решение
 SELECT  EmployeeID
 FROM    dbo.Employees
-WHERE   PostalCode like '98%';
+WHERE   PostalCode like '98%'; --like '98%' is SARG
 
 ----------------------------------------------------------------------------------------------------------------------------------------
 -- 9.4. Разобраться с планом запроса, представленного ниже скрипта. Оптимизировать запрос.
@@ -63,19 +63,20 @@ set statistics time on
 DECLARE @OrderDate DATETIME = N'1996-01-01 00:00:00'
 
 SELECT  ordr.OrderID as OrderId,
-        empl.FirstName + ' ' + empl.LastName as EmployeeName,
+        empl.FirstName as FName,
+		empl.LastName as LName,
         ordr.CustomerID as CustomerId,
 	    cust.CompanyName as CompanyName,
         ordr.ShippedDate as ShippedDate,
         prod.ProductName as ProductName
 FROM    dbo.Orders ordr
-INNER JOIN dbo.[Order Details] ord ON ord.OrderID = ordr.OrderID
-INNER JOIN dbo.Products prod ON ord.ProductID = prod.ProductID
-INNER JOIN dbo.Customers cust ON ordr.CustomerID = cust.CustomerID
-INNER JOIN dbo.Employees empl ON ordr.EmployeeID = empl.EmployeeID
+INNER loop JOIN dbo.[Order Details] ord ON ord.OrderID = ordr.OrderID
+INNER loop JOIN dbo.Products prod ON ord.ProductID = prod.ProductID
+INNER loop JOIN dbo.Customers cust ON ordr.CustomerID = cust.CustomerID
+INNER loop JOIN dbo.Employees empl ON ordr.EmployeeID = empl.EmployeeID
 WHERE ordr.OrderDate >= @OrderDate
 
-
+set statistics time on 
 
 DECLARE @OrderDate DATETIME = N'1996-01-01 00:00:00'
 
@@ -91,8 +92,6 @@ INNER JOIN dbo.Products prod ON ord.ProductID = prod.ProductID
 INNER JOIN dbo.Customers cust ON ordr.CustomerID = cust.CustomerID
 INNER JOIN dbo.Employees empl ON ordr.EmployeeID = empl.EmployeeID
 WHERE ordr.OrderDate >= @OrderDate
-
-
 
 
 declare @i int = 900000
