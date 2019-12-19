@@ -78,7 +78,9 @@ USING (
 	FROM @xml.nodes(N'/Order/Product') t(x)
 ) AS imp 
 ON od.OrderId = imp.OrderID AND od.ProductID = imp.ProductID
-WHEN NOT MATCHED THEN 
+WHEN NOT MATCHED BY SOURCE THEN
+	DELETE
+WHEN NOT MATCHED BY TARGET THEN 
 	INSERT (OrderID, ProductID, UnitPrice, Quantity, Discount)
 	VALUES (imp.OrderID, imp.ProductID, imp.UnitPrice, imp.Quantity, imp.Discount)
 WHEN MATCHED THEN 

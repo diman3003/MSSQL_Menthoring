@@ -31,12 +31,16 @@ BEGIN
 END
 GO
 
+DECLARE @range as varchar(50) = '%[^0-9]%'
 UPDATE dbo.Employees
 SET PostalCode = dbo.SetDigits(PostalCode)
+WHERE PostalCode LIKE @range
 GO
+
 
 SELECT PostalCode
 FROM dbo.Employees
+
 GO
 
 -----------------------------------------------------------------------------------------------------------
@@ -58,25 +62,8 @@ WHERE   PostalCode like '98%'; --like '98%' is SARG
 -- Пояснить подробно почему вы считаете, что ваш вариант оптимизации наиболее оптимизирует данный запрос и увеличит его быстродействие?
 ----------------------------------------------------------------------------------------------------------------------------------------
 
-set statistics time on 
-
-DECLARE @OrderDate DATETIME = N'1996-01-01 00:00:00'
-
-SELECT  ordr.OrderID AS OrderId,
-        CONCAT(empl.FirstName, ' ', empl.LastName) AS EmployeeName,
-        ordr.CustomerID AS CustomerId,
-	    cust.CompanyName AS CompanyName,
-        ordr.ShippedDate AS ShippedDate,
-        prod.ProductName AS ProductName
-FROM    dbo.Orders ordr
-INNER LOOP JOIN dbo.[Order Details] ord ON ord.OrderID = ordr.OrderID
-INNER LOOP JOIN dbo.Products prod ON ord.ProductID = prod.ProductID
-INNER LOOP JOIN dbo.Customers cust ON ordr.CustomerID = cust.CustomerID
-INNER LOOP JOIN dbo.Employees empl ON ordr.EmployeeID = empl.EmployeeID
-WHERE ordr.OrderDate >= @OrderDate
 
 set statistics time on 
-
 DECLARE @OrderDate DATETIME = N'1996-01-01 00:00:00'
 
 SELECT  OrderId = ordr.OrderID,
@@ -92,43 +79,22 @@ INNER JOIN dbo.Customers cust ON ordr.CustomerID = cust.CustomerID
 INNER JOIN dbo.Employees empl ON ordr.EmployeeID = empl.EmployeeID
 WHERE ordr.OrderDate >= @OrderDate
 
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Удалена проверак на null, для уменьшеня действий со значениями, поскольку данные поля не могут содержать null значения.
+-- К существующему индексу OrderDate добавлены included поля (Index Scan изменился на Index Seek).
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+set statistics time on 
+DECLARE @OrderDate DATETIME = N'1996-01-01 00:00:00'
 
-declare @i int = 900000
-declare @n nvarchar(10)
-declare @c nvarchar(4)
-declare @d datetime = N'1996-02-02'
-
-While @i < 1000000
-BEGIN
-	set @n = Cast(@i as nvarchar(10))
-	set @c = @i/10000
-	INSERT INTO dbo.Employees (LastName, FirstName) Values('LN'+@n, 'FN'+@n);
-	--INSERT INTO dbo.Customers (CustomerID, CompanyName) Values('C'+@c,'Company'+@n);
-	INSERT INTO dbo.Products (ProductName, Discontinued) Values('Product'+@n, 0);
-	INSERT INTO dbo.Orders(CustomerId, EmployeeId, OrderDate) Values('C'+@c, @i, @d);
-	INSERT INTO dbo.[Order Details](OrderId, ProductID, UnitPrice, Quantity, Discount) Values(@i, @i, 100, 1, 0);
-	SET @i = @i+1;
-END
-
-DECLARE @id int
-DECLARE vend_cursor CURSOR  
-    FOR select OrderID from Orders where OrderID > 11122 and OrderID < 11130
-OPEN vend_cursor  
-FETCH NEXT FROM vend_cursor INTO @id
-WHILE @@FETCH_STATUS = 0  
-BEGIN 
-
-	Update dbo.Orders
-	Set OrderDate = N'1996-01-01 00:00:00'
-	where OrderID = @id
-
-END   
-CLOSE vendor_cursor;  
-DEALLOCATE vendor_cursor;  
-
-Update dbo.Orders
-Set OrderDate = N'1996-01-01 00:00:00'
-where OrderID = 999902
-
-select * from Orders
-where OrderID > 11118 and OrderID < 11130
+SELECT  ordr.OrderID AS OrderId,
+        CONCAT(empl.FirstName, ' ', empl.LastName) AS EmployeeName,
+        ordr.CustomerID AS CustomerId,
+	    cust.CompanyName AS CompanyName,
+        ordr.ShippedDate AS ShippedDate,
+        prod.ProductName AS ProductName
+FROM  dbo.Orders ordr --WITH(INDEX(OrderDate))
+INNER JOIN dbo.[Order Details] ord ON ord.OrderID = ordr.OrderID
+INNER JOIN dbo.Products prod ON ord.ProductID = prod.ProductID
+INNER JOIN dbo.Customers cust ON ordr.CustomerID = cust.CustomerID
+INNER JOIN dbo.Employees empl ON ordr.EmployeeID = empl.EmployeeID
+WHERE ordr.OrderDate >= @OrderDate
